@@ -27,6 +27,31 @@ const uploadRoute = () => {
       }
     }
   );
+  router.post(
+    "/product-images",
+    upload.fields([{ name: "productImages" }]),
+    async (req, res) => {
+      try {
+        const files = req.files?.productImages;
+        if (!files || files.length === 0) {
+          res.status(400).send({
+            success: false,
+            message: "Profile image not found",
+          });
+        }
+        const productImageUrls = files.map((file) => file.path);
+        return res.send({
+          success: true,
+          productImageUrls: productImageUrls,
+        });
+      } catch {
+        res.status(500).send({
+          message: "Internal Server failed to upload an image",
+          success: false,
+        });
+      }
+    }
+  );
   return router;
 };
 

@@ -15,7 +15,7 @@ const client = new MongoClient(uri, {
   },
 });
 
-let db, usersCollection, categoriesCollection;
+let db, usersCollection, categoriesCollection, productsCollection;
 const connectDB = async () => {
   try {
     await client.connect();
@@ -23,9 +23,11 @@ const connectDB = async () => {
     db = client.db("goptsDB");
     usersCollection = db.collection("users");
     categoriesCollection = db.collection("categories");
+    productsCollection = db.collection("products");
     return {
       usersCollection,
       categoriesCollection,
+      productsCollection,
       ObjectId,
     };
   } catch {

@@ -10,14 +10,19 @@ const storage = new CloudinaryStorage({
       fetch_format: "auto",
       quality: "auto",
     };
+    let folder = "gopts-images";
     let ratio = null;
     let gravity = null;
     if (file?.fieldname === "profileImage") {
       ratio = "1:1";
       gravity = "auto";
+      folder = "gopts-images/users";
+    }
+    if (file?.fieldname === "productImages") {
+      folder = "gopts-images/products";
     }
     return {
-      folder: "gopts-images/users",
+      folder,
       allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
       public_id: `${file?.fieldname}-${Date.now()}`,
       transformation: ratio

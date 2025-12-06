@@ -4,6 +4,7 @@ const { connectDB } = require("./config/db");
 const usersRoute = require("./routes/users.route");
 const uploadRoute = require("./routes/upload.route");
 const categoryRoute = require("./routes/category.route");
+const productsRoute = require("./routes/prodcuts.route");
 
 const app = express();
 app.use(cors());
@@ -15,12 +16,14 @@ async function startServer() {
   const collections = await connectDB();
   app.locals.usersCollection = collections.usersCollection;
   app.locals.categoriesCollection = collections.categoriesCollection;
+  app.locals.productsCollection = collections.productsCollection;
 
   app.get("/", async (_, res) => {
     res.send("Server is running");
   });
   app.use("/users", usersRoute(collections));
   app.use("/categories", categoryRoute(collections));
+  app.use("/products", productsRoute(collections));
 
   app.use("/upload", uploadRoute());
 
