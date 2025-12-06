@@ -15,13 +15,17 @@ const client = new MongoClient(uri, {
   },
 });
 
-let db;
+let db, usersCollection;
 const connectDB = async () => {
   try {
     await client.connect();
-    await client.db("admin").command({ ping: 1 }),
-      console.log("Successfully connected to DB");
-    db = client.db("");
+    console.log("Successfully connected to DB");
+    db = client.db("goptsDB");
+    usersCollection = db.collection("users");
+    return {
+      usersCollection,
+      ObjectId,
+    };
   } catch {
     console.log("Mongodb connection failed");
     process.exit(1);

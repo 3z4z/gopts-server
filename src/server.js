@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const { connectDB } = require("./config/db");
+const usersRoute = require("./routes/users.route");
+const uploadRoute = require("./routes/upload.route");
 
 const app = express();
 app.use(cors());
@@ -13,6 +15,9 @@ async function startServer() {
   app.get("/", async (_, res) => {
     res.send("Server is running");
   });
+  app.use("/users", usersRoute(collections));
+
+  app.use("/upload", uploadRoute());
 
   app.listen(port, () => {
     console.log(`Server is running from: http://localhost:${port}`);
