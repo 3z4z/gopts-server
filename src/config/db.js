@@ -15,15 +15,17 @@ const client = new MongoClient(uri, {
   },
 });
 
-let db, usersCollection;
+let db, usersCollection, categoriesCollection;
 const connectDB = async () => {
   try {
     await client.connect();
     console.log("Successfully connected to DB");
     db = client.db("goptsDB");
     usersCollection = db.collection("users");
+    categoriesCollection = db.collection("categories");
     return {
       usersCollection,
+      categoriesCollection,
       ObjectId,
     };
   } catch {

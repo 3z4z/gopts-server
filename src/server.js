@@ -3,6 +3,7 @@ const cors = require("cors");
 const { connectDB } = require("./config/db");
 const usersRoute = require("./routes/users.route");
 const uploadRoute = require("./routes/upload.route");
+const categoryRoute = require("./routes/category.route");
 
 const app = express();
 app.use(cors());
@@ -12,10 +13,14 @@ const port = process.env.PORT || 3000;
 
 async function startServer() {
   const collections = await connectDB();
+  app.locals.usersCollection = collections.usersCollection;
+  app.locals.categoriesCollection = collections.categoriesCollection;
+
   app.get("/", async (_, res) => {
     res.send("Server is running");
   });
   app.use("/users", usersRoute(collections));
+  app.use("/categories", categoryRoute(collections));
 
   app.use("/upload", uploadRoute());
 
