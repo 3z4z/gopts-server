@@ -36,12 +36,18 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
   router.get("/", async (req, res) => {
     try {
       const query = {};
-      const { email, featured, limit, fields } = req.query;
+      const { email, featured, limit, fields, category, search } = req.query;
       if (email) {
         query.managerEmail = email;
       }
+      if (category) {
+        query.category = category;
+      }
       if (featured) {
         query.markFeatured = Boolean(featured);
+      }
+      if (search) {
+        query.name = { $regex: search, $options: "i" };
       }
       const projectFields = {};
       if (fields) {
@@ -49,7 +55,7 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       }
       const result = await productsCollection
         .find(query)
-        .limit(parseInt(limit))
+        .limit(parseInt(limit) || 0)
         .project(projectFields)
         .toArray();
       res.send(result);
@@ -100,6 +106,30 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       }
     }
   );
+  router.patch("/:id", verifyAuthToken, async (req, res) => {
+    try {
+      const productData = req.body;
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const updateProduct = {
+        $set: {
+          name: productData.name,
+          category: productData.category,
+          price: productData.price,
+          description: productData.description,
+          minOrderAmount: productData.minOrderAmount,
+          availableQuantity: productData.availableQuantity,
+          markFeatured: productData.markFeatured,
+          paymentMethod: productData.paymentMethod,
+          images: productData.images,
+        },
+      };
+      const result = productsCollection.updateOne(query, updateProduct);
+      res.send(result);
+    } catch {
+      res.status(500).send({ message: "Failed to update product" });
+    }
+  });
   return router;
 };
 

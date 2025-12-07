@@ -24,9 +24,22 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
         .send({ message: "Internal Server failed to create a new user" });
     }
   });
-  router.get("/", verifyAuthToken, async (req, res) => {
+  router.get("/", async (req, res) => {
     try {
-      const result = await usersCollection.find().toArray();
+      const query = {};
+      const { search, role } = req.query;
+
+      if (role) {
+        query.role = role;
+      }
+
+      if (search) {
+        query.$or = [
+          { email: { $regex: search, $options: "i" } },
+          { name: { $regex: search, $options: "i" } },
+        ];
+      }
+      const result = await usersCollection.find(query).toArray();
       res.send(result);
     } catch {
       res.status(500).send({ message: "Server failed to fetch users" });
