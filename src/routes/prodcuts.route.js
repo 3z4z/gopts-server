@@ -2,6 +2,7 @@ const express = require("express");
 const verifyAuthToken = require("../middlewares/auth");
 const verifyAdmin = require("../middlewares/admin");
 const getDateFilter = require("../utils/getDateFilter");
+const verifyAdminOrManager = require("../middlewares/adminOrManager");
 
 const productsRoute = ({ productsCollection, ObjectId }) => {
   const router = express.Router();
@@ -37,8 +38,17 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
   router.get("/", async (req, res) => {
     try {
       const query = {};
-      const { email, featured, limit, fields, category, search, time, sort } =
-        req.query;
+      const {
+        email,
+        featured,
+        limit,
+        fields,
+        category,
+        search,
+        time,
+        sort,
+        skip,
+      } = req.query;
       if (email) {
         query.managerEmail = email;
       }
@@ -54,6 +64,10 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       if (time && time !== "") {
         const dateFilter = getDateFilter(time);
         query.createdAt = dateFilter;
+      }
+      let dataSkip = 0;
+      if (skip) {
+        dataSkip = parseInt(skip);
       }
       const sortQuery = {};
       if (sort) {
@@ -71,9 +85,11 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
         .collation({ locale: "en", strength: 1 })
         .limit(parseInt(limit) || 0)
         .project(projectFields)
+        .skip(dataSkip)
         .sort(sortQuery)
         .toArray();
-      res.send(result);
+      const count = await productsCollection.countDocuments(query);
+      res.send({ result, count });
     } catch {
       res.status(500).send({ message: "Server failed to fetch products" });
     }
@@ -121,30 +137,35 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       }
     }
   );
-  router.patch("/:id", verifyAuthToken, async (req, res) => {
-    try {
-      const productData = req.body;
-      const { id } = req.params;
-      const query = { _id: new ObjectId(id) };
-      const updateProduct = {
-        $set: {
-          name: productData.name,
-          category: productData.category,
-          price: productData.price,
-          description: productData.description,
-          minOrderAmount: productData.minOrderAmount,
-          availableQuantity: productData.availableQuantity,
-          markFeatured: productData.markFeatured,
-          paymentMethod: productData.paymentMethod,
-          images: productData.images,
-        },
-      };
-      const result = productsCollection.updateOne(query, updateProduct);
-      res.send(result);
-    } catch {
-      res.status(500).send({ message: "Failed to update product" });
+  router.patch(
+    "/:id",
+    verifyAuthToken,
+    verifyAdminOrManager,
+    async (req, res) => {
+      try {
+        const productData = req.body;
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const updateProduct = {
+          $set: {
+            name: productData.name,
+            category: productData.category,
+            price: productData.price,
+            description: productData.description,
+            minOrderAmount: productData.minOrderAmount,
+            availableQuantity: productData.availableQuantity,
+            markFeatured: productData.markFeatured,
+            paymentMethod: productData.paymentMethod,
+            images: productData.images,
+          },
+        };
+        const result = productsCollection.updateOne(query, updateProduct);
+        res.send(result);
+      } catch {
+        res.status(500).send({ message: "Failed to update product" });
+      }
     }
-  });
+  );
   return router;
 };
 
