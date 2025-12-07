@@ -1,6 +1,7 @@
 const express = require("express");
 const verifyAuthToken = require("../middlewares/auth");
 const verifyAdmin = require("../middlewares/admin");
+const getDateFilter = require("../utils/getDateFilter");
 
 const productsRoute = ({ productsCollection, ObjectId }) => {
   const router = express.Router();
@@ -8,7 +9,7 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
   router.post("/", verifyAuthToken, async (req, res) => {
     try {
       const product = req.body;
-      await productsCollection.insertOne(product);
+      await productsCollection.insertOne({ ...product, createdAt: new Date() });
       res.status(201).send({ message: "Product Added Successfully!" });
     } catch {
       res
@@ -36,7 +37,8 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
   router.get("/", async (req, res) => {
     try {
       const query = {};
-      const { email, featured, limit, fields, category, search } = req.query;
+      const { email, featured, limit, fields, category, search, time, sort } =
+        req.query;
       if (email) {
         query.managerEmail = email;
       }
@@ -49,14 +51,27 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       if (search) {
         query.name = { $regex: search, $options: "i" };
       }
+      if (time && time !== "") {
+        const dateFilter = getDateFilter(time);
+        query.createdAt = dateFilter;
+      }
+      const sortQuery = {};
+      if (sort) {
+        const [field, direction] = sort.split("-");
+        sortQuery[field] = direction === "asc" ? 1 : -1;
+      } else {
+        sortQuery.createdAt = -1;
+      }
       const projectFields = {};
       if (fields) {
         fields.split(",").map((f) => (projectFields[f.trim()] = 1));
       }
       const result = await productsCollection
         .find(query)
+        .collation({ locale: "en", strength: 1 })
         .limit(parseInt(limit) || 0)
         .project(projectFields)
+        .sort(sortQuery)
         .toArray();
       res.send(result);
     } catch {

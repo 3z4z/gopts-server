@@ -3,7 +3,7 @@ const verifyAuthToken = require("../middlewares/auth");
 
 const categoryRoute = ({ categoriesCollection, ObjectId }) => {
   const router = express.Router();
-  router.get("/", verifyAuthToken, async (_, res) => {
+  router.get("/", async (_, res) => {
     try {
       const result = await categoriesCollection.find().toArray();
       res.send(result);
