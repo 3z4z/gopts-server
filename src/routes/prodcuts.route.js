@@ -1,5 +1,6 @@
 const express = require("express");
 const verifyAuthToken = require("../middlewares/auth");
+const verifyAdmin = require("../middlewares/admin");
 
 const productsRoute = ({ productsCollection, ObjectId }) => {
   const router = express.Router();
@@ -32,14 +33,25 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
         .send({ message: "Internal Server failed to match a product" });
     }
   });
-  router.get("/", verifyAuthToken, async (req, res) => {
+  router.get("/", async (req, res) => {
     try {
-      const { email } = req.query;
       const query = {};
+      const { email, featured, limit, fields } = req.query;
       if (email) {
         query.managerEmail = email;
       }
-      const result = await productsCollection.find(query).toArray();
+      if (featured) {
+        query.markFeatured = Boolean(featured);
+      }
+      const projectFields = {};
+      if (fields) {
+        fields.split(",").map((f) => (projectFields[f.trim()] = 1));
+      }
+      const result = await productsCollection
+        .find(query)
+        .limit(parseInt(limit))
+        .project(projectFields)
+        .toArray();
       res.send(result);
     } catch {
       res.status(500).send({ message: "Server failed to fetch products" });
@@ -67,6 +79,27 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       res.status(500).send({ message: "Server failed to delete product" });
     }
   });
+  router.patch(
+    "/:id/markFeatured",
+    verifyAuthToken,
+    verifyAdmin,
+    async (req, res) => {
+      try {
+        const status = req.body;
+        console.log("markFeatured", status);
+        const query = { _id: new ObjectId(req.params.id) };
+        const updateDoc = {
+          $set: {
+            markFeatured: status.markFeatured,
+          },
+        };
+        const result = await productsCollection.updateOne(query, updateDoc);
+        res.send(result);
+      } catch {
+        res.status(500).send({ message: "Server failed to update product" });
+      }
+    }
+  );
   return router;
 };
 
