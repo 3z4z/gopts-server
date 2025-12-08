@@ -1,6 +1,7 @@
 const express = require("express");
 const dotenv = require("dotenv");
 const verifyAuthToken = require("../middlewares/auth");
+const logTracking = require("../utils/orderLogTracking");
 dotenv.config();
 
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
@@ -103,6 +104,12 @@ const paymentRoute = ({ paymentsCollection, ordersCollection, ObjectId }) => {
         });
       }
       const newPayment = await paymentsCollection.insertOne(paymentRecord);
+      logTracking(
+        req,
+        session.metadata.orderId,
+        session.metadata.trackingId,
+        "payment_completed"
+      );
       res.send({
         success: true,
         result,

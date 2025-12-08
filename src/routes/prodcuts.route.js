@@ -109,17 +109,22 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       res.status(500).send({ message: "Failed to fetch a product" });
     }
   });
-  router.delete("/:id", verifyAuthToken, async (req, res) => {
-    try {
-      const { id } = req.params;
-      const result = await productsCollection.deleteOne({
-        _id: new ObjectId(id),
-      });
-      res.send(result);
-    } catch {
-      res.status(500).send({ message: "Server failed to delete product" });
+  router.delete(
+    "/:id",
+    verifyAuthToken,
+    verifyAdminOrManager,
+    async (req, res) => {
+      try {
+        const { id } = req.params;
+        const result = await productsCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+        res.send(result);
+      } catch {
+        res.status(500).send({ message: "Server failed to delete product" });
+      }
     }
-  });
+  );
   router.patch(
     "/:id/markFeatured",
     verifyAuthToken,

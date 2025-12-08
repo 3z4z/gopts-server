@@ -20,7 +20,8 @@ let db,
   categoriesCollection,
   productsCollection,
   ordersCollection,
-  paymentsCollection;
+  paymentsCollection,
+  trackingCollection;
 const connectDB = async () => {
   try {
     await client.connect();
@@ -31,12 +32,14 @@ const connectDB = async () => {
     productsCollection = db.collection("products");
     ordersCollection = db.collection("orders");
     paymentsCollection = db.collection("payments");
+    trackingCollection = db.collection("tracking");
     return {
       usersCollection,
       categoriesCollection,
       productsCollection,
       ordersCollection,
       paymentsCollection,
+      trackingCollection,
       ObjectId,
     };
   } catch {

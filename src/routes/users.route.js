@@ -24,7 +24,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
         .send({ message: "Internal Server failed to create a new user" });
     }
   });
-  router.get("/", async (req, res) => {
+  router.get("/", verifyAuthToken, verifyAdmin, async (req, res) => {
     try {
       const query = {};
       const { search, role } = req.query;
