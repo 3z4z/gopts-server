@@ -5,6 +5,8 @@ const usersRoute = require("./routes/users.route");
 const uploadRoute = require("./routes/upload.route");
 const categoryRoute = require("./routes/category.route");
 const productsRoute = require("./routes/prodcuts.route");
+const ordersRoute = require("./routes/orders.route");
+const paymentRoute = require("./routes/payment.route");
 
 const app = express();
 app.use(cors());
@@ -15,8 +17,6 @@ const port = process.env.PORT || 3000;
 async function startServer() {
   const collections = await connectDB();
   app.locals.usersCollection = collections.usersCollection;
-  app.locals.categoriesCollection = collections.categoriesCollection;
-  app.locals.productsCollection = collections.productsCollection;
 
   app.get("/", async (_, res) => {
     res.send("Server is running");
@@ -24,6 +24,8 @@ async function startServer() {
   app.use("/users", usersRoute(collections));
   app.use("/categories", categoryRoute(collections));
   app.use("/products", productsRoute(collections));
+  app.use("/orders", ordersRoute(collections));
+  app.use("/payment", paymentRoute(collections));
 
   app.use("/upload", uploadRoute());
 

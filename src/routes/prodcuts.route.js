@@ -48,6 +48,7 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
         time,
         sort,
         skip,
+        payMethod,
       } = req.query;
       if (email) {
         query.managerEmail = email;
@@ -57,6 +58,9 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       }
       if (featured) {
         query.markFeatured = Boolean(featured);
+      }
+      if (payMethod) {
+        query.paymentMethod = payMethod;
       }
       if (search) {
         query.name = { $regex: search, $options: "i" };

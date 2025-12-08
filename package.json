@@ -20,6 +20,7 @@
     "mongodb": "^7.0.0",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.1.11",
+    "stripe": "^20.0.0"
   }
 }
