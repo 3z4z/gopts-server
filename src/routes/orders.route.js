@@ -5,8 +5,10 @@ const attachAdminFlag = require("../middlewares/attachAdminFlag");
 const attachManagerFlag = require("../middlewares/attachManagerFlag");
 const logTracking = require("../utils/orderLogTracking");
 
-const ordersRoute = ({ ordersCollection, ObjectId }) => {
+const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
   const router = express.Router();
+
+  // add a new order
   router.post("/", verifyAuthToken, async (req, res) => {
     try {
       const bookingInfo = req.body;
@@ -34,7 +36,8 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
         req,
         finalResult.orderId.toString(),
         finalResult.trackingId,
-        "not_started"
+        bookingInfo.paymentMethod === "cod" ? "pending" : "not_started",
+        "Waiting for approval"
       );
       return res.status(201).send(finalResult);
     } catch {
@@ -43,12 +46,23 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
         .send({ message: "Server failed to update product" });
     }
   });
+
+  // get all orders with queries
   router.get("/", verifyAuthToken, attachAdminFlag, async (req, res) => {
     try {
-      const { email } = req.query;
+      const { email, search, status, payment } = req.query;
       const query = {};
       if (email) {
         query.buyerEmail = email;
+      }
+      if (payment) {
+        query.paymentStatus = payment;
+      }
+      if (status) {
+        query.deliveryStatus = status;
+      }
+      if (search) {
+        query.productName = { $regex: search, $options: "i" };
       }
       if (email !== req.auth_email && !req.isAdmin) {
         return res.status(403).send({ message: "Unauthorized" });
@@ -59,16 +73,34 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
       res.status(500).send({ message: "Server failed to fetch your orders" });
     }
   });
+
+  // get current delivery statuses
+  router.get("/statuses", verifyAuthToken, attachAdminFlag, async (_, res) => {
+    try {
+      const result = await ordersCollection
+        .find()
+        .project({ deliveryStatus: 1 })
+        .toArray();
+      res.send(result);
+    } catch {
+      res.status(500).send({ message: "Failed to fetch statuses" });
+    }
+  });
+
+  // get pending orders
   router.get(
     "/pending",
     verifyAuthToken,
     attachManagerFlag,
     async (req, res) => {
       try {
-        const { email } = req.query;
+        const { email, search } = req.query;
         const query = {};
         if (email) {
           query.managerEmail = email;
+        }
+        if (search) {
+          query.productName = { $regex: search, $options: "i" };
         }
 
         if (email !== req.auth_email && !req.isManager) {
@@ -85,16 +117,21 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
       }
     }
   );
+
+  // get approved orders
   router.get(
     "/approved",
     verifyAuthToken,
     attachManagerFlag,
     async (req, res) => {
       try {
-        const { email } = req.query;
+        const { email, search } = req.query;
         const query = {};
         if (email) {
           query.managerEmail = email;
+        }
+        if (search) {
+          query.productName = { $regex: search, $options: "i" };
         }
 
         if (email !== req.auth_email && !req.isManager) {
@@ -114,6 +151,8 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
       }
     }
   );
+
+  // get a single order
   router.get(
     "/:id",
     verifyAuthToken,
@@ -138,6 +177,8 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
       }
     }
   );
+
+  // update delivery status
   router.patch("/:id", verifyAuthToken, attachManagerFlag, async (req, res) => {
     try {
       const { id } = req.params;
@@ -148,23 +189,45 @@ const ordersRoute = ({ ordersCollection, ObjectId }) => {
           deliveryStatus,
         },
       };
-      if (deliveryStatus === "ready") {
+      if (deliveryStatus === "approved") {
         logTracking(
           req,
           id,
           trackingId,
           deliveryStatus,
-          "Delivery process started"
+          "Order Approved, delivery process started"
         );
         updateDoc.$set.approvedAt = new Date();
+      } else {
+        logTracking(req, id, trackingId, deliveryStatus, details);
       }
       const result = await ordersCollection.updateOne(query, updateDoc);
-      logTracking(req, id, trackingId, deliveryStatus, details);
       res.send(result);
     } catch {
       res
         .status(500)
         .send({ message: "server failed to update delivery status" });
+    }
+  });
+
+  // delete an order and related tracking logs
+  router.delete("/:id", verifyAuthToken, async (req, res) => {
+    try {
+      const { id } = req.params;
+      console.log("id", id, typeof id);
+      const query = { _id: new ObjectId(id) };
+      const order = await ordersCollection.findOne(query);
+      if (
+        order.deliveryStatus !== "pending" &&
+        order.deliveryStatus !== "not_started"
+      ) {
+        return res.status(400).send({ message: "This order can't be deleted" });
+      }
+      const result = await ordersCollection.deleteOne(query);
+      const deleteResult = await trackingCollection.deleteMany({ orderId: id });
+      return res.send({ result, deleteResult });
+    } catch {
+      res.status(500).send({ message: "Server failed to cancel your order" });
     }
   });
   return router;

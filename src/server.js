@@ -1,10 +1,14 @@
 const express = require("express");
 const cors = require("cors");
+
+//configs
 const { connectDB } = require("./config/db");
+
+// routes
 const usersRoute = require("./routes/users.route");
 const uploadRoute = require("./routes/upload.route");
 const categoryRoute = require("./routes/category.route");
-const productsRoute = require("./routes/prodcuts.route");
+const productsRoute = require("./routes/products.route");
 const ordersRoute = require("./routes/orders.route");
 const paymentRoute = require("./routes/payment.route");
 const trackingRoute = require("./routes/tracking.route");

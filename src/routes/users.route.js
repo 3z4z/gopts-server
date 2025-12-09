@@ -58,13 +58,17 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   router.patch("/:id", verifyAuthToken, verifyAdmin, async (req, res) => {
     try {
       const { id } = req.params;
-      const statusInfo = req.body;
+      const { status, rejectionReason } = req.body;
       const query = { _id: new ObjectId(id) };
-      const updateStatus = {
-        $set: {
-          status: statusInfo.status,
-        },
-      };
+      if (!req.isAdmin) {
+        res.status(403).send({ message: "Access Forbidden" });
+      }
+      let updateStatus = { $set: { status } };
+      if (status === "approved") {
+        updateStatus.$unset = { rejectionReason: "" };
+      } else {
+        updateStatus.$set.rejectionReason = rejectionReason;
+      }
       const result = await usersCollection.updateOne(query, updateStatus);
       res.send(result);
     } catch {

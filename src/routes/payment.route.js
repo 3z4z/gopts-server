@@ -65,7 +65,6 @@ const paymentRoute = ({ paymentsCollection, ordersCollection, ObjectId }) => {
       const existedPayment = await paymentsCollection.findOne({
         $or: [{ transactionId }, { orderId: session.metadata.orderId }],
       });
-      console.log(existedPayment);
       if (existedPayment) {
         return res.status(400).send({
           success: false,
@@ -108,7 +107,8 @@ const paymentRoute = ({ paymentsCollection, ordersCollection, ObjectId }) => {
         req,
         session.metadata.orderId,
         session.metadata.trackingId,
-        "payment_completed"
+        "payment_completed",
+        `Successfully paid via Stripe <br /> TxID: ${transactionId}`
       );
       res.send({
         success: true,
