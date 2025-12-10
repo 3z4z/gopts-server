@@ -165,6 +165,7 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
             availableQuantity: productData.availableQuantity,
             markFeatured: productData.markFeatured,
             paymentMethod: productData.paymentMethod,
+            demoVideoLink: productData.demoVideoLink,
             images: productData.images,
           },
         };

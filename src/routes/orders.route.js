@@ -17,12 +17,13 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
         productName: bookingInfo.productName,
         productId: bookingInfo.productId,
         buyerEmail: bookingInfo.buyerEmail,
-        paymentStatus: { $in: ["unpaid", "paid"] },
+        deliveryStatus: { $in: ["not_started", "pending"] },
       });
       if (existedBooking)
-        return res
-          .status(400)
-          .send({ message: "You already booked this product" });
+        return res.status(400).send({
+          message:
+            "Already booked! You can book again after manager confirm previous order.",
+        });
       const result = await ordersCollection.insertOne({
         ...bookingInfo,
         trackingId,
@@ -39,11 +40,9 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
         bookingInfo.paymentMethod === "cod" ? "pending" : "not_started",
         "Waiting for approval"
       );
-      return res.status(201).send(finalResult);
+      res.status(201).send(finalResult);
     } catch {
-      return res
-        .status(500)
-        .send({ message: "Server failed to update product" });
+      res.status(500).send({ message: "Server failed to update product" });
     }
   });
 
