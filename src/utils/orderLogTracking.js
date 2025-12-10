@@ -3,7 +3,8 @@ const logTracking = async (
   orderId,
   trackingId,
   deliveryStatus,
-  details
+  details,
+  location
 ) => {
   try {
     const trackingCollection = req.app.locals.trackingCollection;
@@ -13,6 +14,7 @@ const logTracking = async (
       deliveryStatus,
       details: details || deliveryStatus.split("_").join(" "),
       createdAt: new Date(),
+      location: location ? location : "",
     };
     const result = await trackingCollection.insertOne(log);
     return result;

@@ -38,7 +38,8 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
         finalResult.orderId.toString(),
         finalResult.trackingId,
         bookingInfo.paymentMethod === "cod" ? "pending" : "not_started",
-        "Waiting for approval"
+        "Waiting for approval",
+        "Chittagong"
       );
       res.status(201).send(finalResult);
     } catch {
@@ -181,7 +182,7 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
   router.patch("/:id", verifyAuthToken, attachManagerFlag, async (req, res) => {
     try {
       const { id } = req.params;
-      const { deliveryStatus, trackingId, details } = req.body;
+      const { deliveryStatus, trackingId, details, locationInfo } = req.body;
       const query = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
@@ -194,11 +195,14 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
           id,
           trackingId,
           deliveryStatus,
-          "Order Approved, delivery process started"
+          "Order Approved, delivery process started",
+          locationInfo
         );
         updateDoc.$set.approvedAt = new Date();
+      } else if (deliveryStatus === "delivery_done") {
+        logTracking(req, id, trackingId, deliveryStatus, details, locationInfo);
       } else {
-        logTracking(req, id, trackingId, deliveryStatus, details);
+        logTracking(req, id, trackingId, deliveryStatus, details, locationInfo);
       }
       const result = await ordersCollection.updateOne(query, updateDoc);
       res.send(result);

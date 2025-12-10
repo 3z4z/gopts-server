@@ -108,7 +108,8 @@ const paymentRoute = ({ paymentsCollection, ordersCollection, ObjectId }) => {
         session.metadata.orderId,
         session.metadata.trackingId,
         "payment_completed",
-        `Successfully paid via Stripe <br /> TxID: ${transactionId}`
+        `Successfully paid via Stripe <br /> TxID: ${transactionId}`,
+        "Chittagong"
       );
       res.send({
         success: true,
