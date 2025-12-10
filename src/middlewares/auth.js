@@ -12,22 +12,14 @@ admin.initializeApp({
 
 const verifyAuthToken = async (req, res, next) => {
   try {
-    const authorization = req.headers.authorization;
+    const authorization = req.cookies.accessToken;
     if (!authorization) {
       return res.status(401).send({
-        message: "Unauthorized Access. Reason: Authorization header missing.",
+        message: "Unauthorized Access. Reason: Session cookies missing.",
       });
     }
 
-    const [scheme, authToken] = authorization.split(" ");
-
-    if (scheme !== "Bearer" || !authToken) {
-      return res.status(401).send({
-        message: "Unauthorized Access. Reason: Invalid Bearer Token format.",
-      });
-    }
-
-    const userInfo = await admin.auth().verifyIdToken(authToken);
+    const userInfo = await admin.auth().verifyIdToken(authorization);
 
     req.user = userInfo;
     req.auth_email = userInfo.email;

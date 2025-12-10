@@ -2,10 +2,48 @@ const express = require("express");
 const verifyAuthToken = require("../middlewares/auth");
 const verifyAdmin = require("../middlewares/admin");
 const attachAdminFlag = require("../middlewares/attachAdminFlag");
+const admin = require("firebase-admin");
 
 const usersRoute = ({ usersCollection, ObjectId }) => {
   const router = express.Router();
   const userDefaultRole = "Buyer";
+
+  router.post("/login", async (req, res) => {
+    try {
+      const { idToken } = req.body;
+      if (!idToken) return res.status(400).send({ message: "Token required" });
+
+      const decodedToken = await admin.auth().verifyIdToken(idToken);
+      const email = decodedToken.email;
+
+      const existedUser = await usersCollection.findOne({ email });
+      if (!existedUser) {
+        await usersCollection.insertOne({
+          email,
+          role: userDefaultRole,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        });
+      }
+
+      res.cookie("accessToken", idToken, {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 24 * 60 * 60 * 5 * 1000,
+      });
+
+      res.send({ message: "Logged in successfully", email });
+    } catch (err) {
+      console.error(err);
+      res.status(401).send({ message: "Invalid token" });
+    }
+  });
+
+  router.post("/logout", (_, res) => {
+    res.clearCookie("accessToken");
+    res.send({ message: "Logged out successfully" });
+  });
 
   router.post("/", async (req, res) => {
     try {
@@ -13,10 +51,10 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
       user.role = user.role || userDefaultRole;
       user.status = "pending";
       user.createdAt = new Date().toISOString();
+
       const existedUser = await usersCollection.findOne({ email: user?.email });
-      if (existedUser) {
-        return res.send({ message: "User exists" });
-      }
+      if (existedUser) return res.send({ message: "User exists" });
+
       const result = await usersCollection.insertOne(user);
       res.send(result);
     } catch {
@@ -25,21 +63,20 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
         .send({ message: "Internal Server failed to create a new user" });
     }
   });
+
   router.get("/", verifyAuthToken, verifyAdmin, async (req, res) => {
     try {
       const query = {};
       const { search, role } = req.query;
 
-      if (role) {
-        query.role = role;
-      }
-
+      if (role) query.role = role;
       if (search) {
         query.$or = [
           { email: { $regex: search, $options: "i" } },
           { name: { $regex: search, $options: "i" } },
         ];
       }
+
       const result = await usersCollection.find(query).toArray();
       res.send(result);
     } catch {
@@ -49,10 +86,10 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   router.get("/email/:email", verifyAuthToken, async (req, res) => {
     try {
       const { email } = req.params;
-      if (email !== req.auth_email) {
+      if (email !== req.auth_email)
         return res.status(403).send({ message: "Access Forbidden" });
-      }
-      const result = await usersCollection.findOne({ email: email });
+
+      const result = await usersCollection.findOne({ email });
       res.send(result);
     } catch {
       res.status(500).send({ message: "Failed to fetch the user" });
@@ -61,8 +98,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   router.get("/:email/role", verifyAuthToken, async (req, res) => {
     try {
       const { email } = req.params;
-      const query = { email };
-      const user = await usersCollection.findOne(query);
+      const user = await usersCollection.findOne({ email });
       res.send({ role: user?.role || userDefaultRole });
     } catch {
       res.status(500).send({ message: "Server failed to fetch user role" });
@@ -71,8 +107,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   router.get("/:email/status", verifyAuthToken, async (req, res) => {
     try {
       const { email } = req.params;
-      const query = { email };
-      const user = await usersCollection.findOne(query);
+      const user = await usersCollection.findOne({ email });
       res.send({ status: user?.status || "pending" });
     } catch {
       res.status(500).send({ message: "Server failed to fetch user status" });
@@ -88,15 +123,15 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
         const { id } = req.params;
         const { status, rejectionReason } = req.body;
         const query = { _id: new ObjectId(id) };
-        if (!req.isAdmin) {
+
+        if (!req.isAdmin)
           return res.status(403).send({ message: "Access Forbidden" });
-        }
+
         let updateStatus = { $set: { status } };
-        if (status === "approved") {
+        if (status === "approved")
           updateStatus.$unset = { rejectionReason: {} };
-        } else {
-          updateStatus.$set.rejectionReason = rejectionReason;
-        }
+        else updateStatus.$set.rejectionReason = rejectionReason;
+
         const result = await usersCollection.updateOne(query, updateStatus);
         res.send(result);
       } catch {
@@ -104,6 +139,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
       }
     }
   );
+
   return router;
 };
 

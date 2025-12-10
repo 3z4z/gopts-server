@@ -1,5 +1,19 @@
 const express = require("express");
 const cors = require("cors");
+const cookieParser = require("cookie-parser");
+const dotenv = require("dotenv");
+
+//app setup
+const app = express();
+dotenv.config();
+app.use(
+  cors({
+    origin: [process.env.SITE_DOMAIN],
+    credentials: true,
+  })
+);
+app.use(express.json());
+app.use(cookieParser());
 
 //configs
 const { connectDB } = require("./config/db");
@@ -12,10 +26,6 @@ const productsRoute = require("./routes/products.route");
 const ordersRoute = require("./routes/orders.route");
 const paymentRoute = require("./routes/payment.route");
 const trackingRoute = require("./routes/tracking.route");
-
-const app = express();
-app.use(cors());
-app.use(express.json());
 
 const port = process.env.PORT || 3000;
 
