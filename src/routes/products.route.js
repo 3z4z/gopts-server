@@ -87,7 +87,7 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       const result = await productsCollection
         .find(query)
         .collation({ locale: "en", strength: 1 })
-        .limit(parseInt(limit) || 0)
+        .limit(Number(limit) || 0)
         .project(projectFields)
         .skip(dataSkip)
         .sort(sortQuery)
@@ -96,6 +96,54 @@ const productsRoute = ({ productsCollection, ObjectId }) => {
       res.send({ result, count });
     } catch {
       res.status(500).send({ message: "Server failed to fetch products" });
+    }
+  });
+  router.get("/stats", async (req, res) => {
+    const { timeInfo } = req.query;
+    let timeDistance;
+
+    if (timeInfo === "last-week") {
+      timeDistance = 7;
+    } else if (timeInfo === "last-15-days") {
+      timeDistance = 15;
+    } else if (timeInfo === "last-30-days") {
+      timeDistance = 30;
+    } else {
+      timeDistance = 7;
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - timeDistance);
+
+    try {
+      const pipeline = [
+        {
+          $addFields: {
+            createdAtDate: { $toDate: "$createdAt" },
+          },
+        },
+        {
+          $match: {
+            createdAtDate: {
+              $gte: startDate,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAtDate" },
+            },
+            totalProducts: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ];
+
+      const result = await productsCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    } catch (err) {
+      res.status(500).send({ message: "Internal server error" });
     }
   });
   router.get("/:id", verifyAuthToken, async (req, res) => {

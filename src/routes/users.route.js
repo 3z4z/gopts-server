@@ -64,6 +64,55 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
     }
   });
 
+  router.get("/stats", async (req, res) => {
+    const { timeInfo } = req.query;
+    let timeDistance;
+
+    if (timeInfo === "last-week") {
+      timeDistance = 7;
+    } else if (timeInfo === "last-15-days") {
+      timeDistance = 15;
+    } else if (timeInfo === "last-30-days") {
+      timeDistance = 30;
+    } else {
+      timeDistance = 7;
+    }
+
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - timeDistance);
+
+    try {
+      const pipeline = [
+        {
+          $addFields: {
+            createdAtDate: { $toDate: "$createdAt" },
+          },
+        },
+        {
+          $match: {
+            createdAtDate: {
+              $gte: startDate,
+            },
+          },
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: "%Y-%m-%d", date: "$createdAtDate" },
+            },
+            totalUsers: { $sum: 1 },
+          },
+        },
+        { $sort: { _id: 1 } },
+      ];
+
+      const result = await usersCollection.aggregate(pipeline).toArray();
+      res.send(result);
+    } catch (err) {
+      res.status(500).send({ message: "Internal server error" });
+    }
+  });
+
   router.get("/", verifyAuthToken, verifyAdmin, async (req, res) => {
     try {
       const query = {};
