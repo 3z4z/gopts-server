@@ -217,7 +217,6 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
   router.delete("/:id", verifyAuthToken, async (req, res) => {
     try {
       const { id } = req.params;
-      console.log("id", id, typeof id);
       const query = { _id: new ObjectId(id) };
       const order = await ordersCollection.findOne(query);
       if (

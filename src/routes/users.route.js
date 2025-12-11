@@ -8,6 +8,36 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   const router = express.Router();
   const userDefaultRole = "Buyer";
 
+  router.post("/check-duplicate", async (req, res) => {
+    try {
+      const { email } = req.body;
+      const existedUser = await usersCollection.findOne({
+        email: email,
+      });
+      if (existedUser) {
+        return res.send({ message: "User already exists", existed: true });
+      } else {
+        return res.send({ existed: false });
+      }
+    } catch {
+      res
+        .status(500)
+        .send({ message: "Internal Server failed to match a user" });
+    }
+  });
+  router.post("/", async (req, res) => {
+    try {
+      const user = req.body;
+      user.role = user.role || userDefaultRole;
+      user.createdAt = new Date();
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    } catch {
+      res
+        .status(500)
+        .send({ message: "Internal Server failed to create a new user" });
+    }
+  });
   router.post("/login", async (req, res) => {
     try {
       const { idToken } = req.body;
@@ -15,19 +45,13 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
 
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const email = decodedToken.email;
-
-      const existedUser = await usersCollection.findOne({ email });
-      if (!existedUser) {
-        await usersCollection.insertOne({
-          email,
-          role: userDefaultRole,
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        });
-      }
-
       res.cookie("accessToken", idToken, {
         httpOnly: true,
+        // local
+        // secure: false,
+        // sameSite: "lax",
+
+        // develop
         secure: true,
         sameSite: "none",
         maxAge: 24 * 60 * 60 * 5 * 1000,
@@ -43,25 +67,6 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
   router.post("/logout", (_, res) => {
     res.clearCookie("accessToken");
     res.send({ message: "Logged out successfully" });
-  });
-
-  router.post("/", async (req, res) => {
-    try {
-      const user = req.body;
-      user.role = user.role || userDefaultRole;
-      user.status = "pending";
-      user.createdAt = new Date().toISOString();
-
-      const existedUser = await usersCollection.findOne({ email: user?.email });
-      if (existedUser) return res.send({ message: "User exists" });
-
-      const result = await usersCollection.insertOne(user);
-      res.send(result);
-    } catch {
-      res
-        .status(500)
-        .send({ message: "Internal Server failed to create a new user" });
-    }
   });
 
   router.get("/stats", async (req, res) => {
