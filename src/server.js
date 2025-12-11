@@ -8,7 +8,7 @@ const app = express();
 dotenv.config();
 app.use(
   cors({
-    origin: [process.env.SITE_DOMAIN],
+    origin: [process.env.SITE_DOMAIN, "https://gopts.netlify.app"],
     credentials: true,
   })
 );
