@@ -1,10 +1,12 @@
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
 const cloudinary = require("../config/cloudinary");
+const crypto = require("crypto");
 
 const storage = new CloudinaryStorage({
   cloudinary,
   params: (req, file) => {
+    const randomId = crypto.randomBytes(6).toString("hex");
     let transformation = {
       crop: "fill",
       fetch_format: "auto",
@@ -23,8 +25,8 @@ const storage = new CloudinaryStorage({
     }
     return {
       folder,
-      allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif"],
-      public_id: `${file?.fieldname}-${Date.now()}`,
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "jfif", "avif"],
+      public_id: `${file?.fieldname}-${Date.now()}-${randomId}`,
       transformation: ratio
         ? [{ ...transformation, aspect_ratio: ratio, gravity }]
         : undefined,

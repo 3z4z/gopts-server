@@ -38,7 +38,7 @@ const ordersRoute = ({ ordersCollection, trackingCollection, ObjectId }) => {
         finalResult.orderId.toString(),
         finalResult.trackingId,
         bookingInfo.paymentMethod === "cod" ? "pending" : "not_started",
-        "Waiting for approval",
+        "Order Request sent. Waiting for approval",
         "Chittagong"
       );
       res.status(201).send(finalResult);
