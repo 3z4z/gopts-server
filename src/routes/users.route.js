@@ -29,6 +29,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
     try {
       const user = req.body;
       user.role = user.role || userDefaultRole;
+      user.status = "pending";
       user.createdAt = new Date();
       const result = await usersCollection.insertOne(user);
       res.send(result);
