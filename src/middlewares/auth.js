@@ -12,14 +12,14 @@ admin.initializeApp({
 
 const verifyAuthToken = async (req, res, next) => {
   try {
-    const authorization = req.cookies.accessToken;
-    if (!authorization) {
+    const cookie = req.cookies.accessToken;
+    if (!cookie) {
       return res.status(401).send({
         message: "Unauthorized Access. Reason: Session cookies missing.",
       });
     }
 
-    const userInfo = await admin.auth().verifyIdToken(authorization);
+    const userInfo = await admin.auth().verifySessionCookie(cookie, true);
 
     req.user = userInfo;
     req.auth_email = userInfo.email;

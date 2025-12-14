@@ -40,13 +40,17 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
     }
   });
   router.post("/login", async (req, res) => {
+    const expiresIn = 5 * 24 * 60 * 60 * 1000;
     try {
       const { idToken } = req.body;
       if (!idToken) return res.status(400).send({ message: "Token required" });
 
+      const sessionCookie = await admin
+        .auth()
+        .createSessionCookie(idToken, { expiresIn });
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       const email = decodedToken.email;
-      res.cookie("accessToken", idToken, {
+      res.cookie("accessToken", sessionCookie, {
         httpOnly: true,
         // local
         // secure: false,
@@ -55,7 +59,7 @@ const usersRoute = ({ usersCollection, ObjectId }) => {
         // develop
         secure: true,
         sameSite: "none",
-        maxAge: 24 * 60 * 60 * 5 * 1000,
+        maxAge: expiresIn,
       });
 
       res.send({ message: "Logged in successfully", email });
